@@ -6,7 +6,7 @@ numpy
 
 # Usage
 Here is how you would use it to create a wider version of an existing layer
-
+Net2WiderNet: ::
   import numpy as np
   
   weights = np.matrix([[1.0, 0.1, 0.5], [1.0, 0.1, 0.5]])
@@ -18,7 +18,7 @@ Here is how you would use it to create a wider version of an existing layer
                                                       new_layer_size=5)
 Then simply use the new variables from then on.
 
-For Deeper net:
+Net2DeeperNet: ::
   import numpy as np
   
   bias = np.array([0.0, 0.0, 0.0])
