@@ -19,6 +19,7 @@ Here is how you would use it to create a wider version of an existing layer
 Then simply use the new variables from then on.
 
 Here is creating the weights and biases for a new layer using net 2 deeper net
+
     import numpy as np
     
     bias = np.array([0.0, 0.0, 0.0])
