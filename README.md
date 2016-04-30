@@ -2,7 +2,7 @@
 numpy implementation of net 2 net from the paper Net2Net: Accelerating Learning via Knowledge Transfer http://arxiv.org/abs/1511.05641
 
 # Requirements
-numpy
+- numpy
 
 # Usage
 Here is how you would use it to create a wider version of an existing layer
