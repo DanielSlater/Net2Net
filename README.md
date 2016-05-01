@@ -25,3 +25,5 @@ Here is creating the weights and biases for a new layer using net 2 deeper net
     bias = np.array([0.0, 0.0, 0.0])
     
     next_layer_weights, next_layer_bias = net_2_deeper_net(bias)
+
+There are complete examples of using this for grid searching the number of hidden nodes in examples/tensorflow_grid_search.py
