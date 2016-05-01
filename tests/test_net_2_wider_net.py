@@ -73,3 +73,31 @@ class TestNet2WiderNet(TestCase):
 
         self.assertEqual(self.WEIGHTS_NEXT_LAYER[1, 0], weights_next_layer_post[1, 0],
                          msg='this weight was not the max so should not have been split so should be exactly equal')
+
+    def test_one_wider_max_split_with_ndarray(self):
+        inputs = np.array([0.1, 0.9])
+
+        # make sure it can handle these being ndarrays rather than matrix
+        weights_as_array = np.asarray(self.WEIGHTS)
+        weights_next_layer_as_array = np.asarray(self.WEIGHTS_NEXT_LAYER)
+
+        activation_pre_widening = np.dot((np.dot(inputs, weights_as_array) + self.BIAS), weights_next_layer_as_array)
+
+        weights_post, bias_post, weights_next_layer_post = net_2_wider_net(weights_as_array, self.BIAS,
+                                                                           weights_next_layer_as_array,
+                                                                           noise_std=self.SMALL_NOISE_EPSILON,
+                                                                           split_max_weight_else_random=True)
+
+        self.assertEqual(type(weights_post), np.ndarray,
+                         msg='if we give the inputs as ndarrays we expect them to come back as ndarrays')
+        self.assertEqual(type(weights_next_layer_post), np.ndarray,
+                         msg='if we give the inputs as ndarrays we expect them to come back as ndarrays')
+
+        activation_post_net_widening = np.dot((np.dot(inputs, weights_post) + bias_post), weights_next_layer_post)
+
+        np.testing.assert_array_almost_equal(activation_pre_widening, activation_post_net_widening, decimal=2,
+                                             err_msg='activation should not be significantly changed after widening')
+
+        self.assertEqual(self.BIAS.shape[0] + 1, bias_post.shape[0], msg='bias should be one larger')
+        self.assertAlmostEqual(self.WEIGHTS_NEXT_LAYER[0, 0] / 2., weights_next_layer_post[0, 0],
+                               msg='this weight was the max so should have been split in 2')
