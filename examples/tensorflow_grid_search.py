@@ -17,9 +17,10 @@ import tensorflow as tf
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
 # Parameters
-learning_rate = 0.005
-minimal_model_training_epochs = 1
-after_resize_training_epochs = 1
+minimal_model_learning_rate = 0.001
+minimal_model_training_epochs = 15
+after_resize_training_epochs = 15
+after_resize_learning_rate = 0.0005
 batch_size = 100
 
 # Network Parameters
@@ -40,7 +41,7 @@ print(hidden_node_grid_search)
 # tf Graph input
 x = tf.placeholder("float", [None, n_input])
 y = tf.placeholder("float", [None, n_classes])
-
+learning_rate_tensor = tf.Variable(minimal_model_learning_rate, trainable=False)
 
 # Create model
 def multilayer_perceptron(input_placeholder, _weights, _biases):
@@ -49,7 +50,7 @@ def multilayer_perceptron(input_placeholder, _weights, _biases):
     layer_2 = tf.nn.relu(tf.add(tf.matmul(layer_1, _weights[1]), _biases[1]))  # Hidden layer with RELU activation
     prediction_op = tf.matmul(layer_2, _weights[2]) + _biases[2]
     cost_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction_op, y))  # Softmax loss
-    train_op = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost_op)
+    train_op = tf.train.AdamOptimizer(learning_rate=learning_rate_tensor).minimize(cost_op)
     return cost_op, train_op, prediction_op
 
 
@@ -112,27 +113,25 @@ def clone_wider_network(minimal_network_weights,
 
     return weights_variables, biases_variables
 
-
 # Store layers weight & bias
 weight_variables = [tf.Variable(tf.random_normal([n_input, minimal_n_hidden_1])),
                     tf.Variable(tf.random_normal([minimal_n_hidden_1, minimal_n_hidden_2])),
                     tf.Variable(tf.random_normal([minimal_n_hidden_2, n_classes]))]
 
-bias_variables = [tf.Variable(tf.random_normal([minimal_n_hidden_1])),
-                  tf.Variable(tf.random_normal([minimal_n_hidden_2])),
-                  tf.Variable(tf.random_normal([n_classes]))]
+bias_variables = [tf.Variable(tf.zeros([minimal_n_hidden_1])),
+                  tf.Variable(tf.zeros([minimal_n_hidden_2])),
+                  tf.Variable(tf.zeros([n_classes]))]
 
 # Construct model
 cost, optimizer, pred = multilayer_perceptron(x, weight_variables, bias_variables)
-
-# Initializing the variables
-init = tf.initialize_all_variables()
 
 results = []
 
 # Launch the graph
 with tf.Session() as sess:
-    sess.run(init)
+    new_all_variables = set(tf.all_variables())
+    sess.run(tf.initialize_variables(new_all_variables))
+    old_all_variables = new_all_variables
 
     training_cycle(sess, cost, optimizer, pred, minimal_model_training_epochs)
 
@@ -140,14 +139,19 @@ with tf.Session() as sess:
     minimal_network_weights = list(sess.run(weight_variables))
     minimal_network_biases = list(sess.run(bias_variables))
 
+    learning_rate_tensor.assign(after_resize_learning_rate)
+
     for n_layer_h1, n_layer_h2 in hidden_node_grid_search:
         weight_variables, bias_variables = clone_wider_network(minimal_network_weights, minimal_network_biases,
                                                                n_layer_h1, n_layer_h2)
 
-        # must initalize all these variables
-        sess.run(tf.initialize_variables(weight_variables + bias_variables))
-
         new_cost, new_optimizer, new_pred = multilayer_perceptron(x, weight_variables, bias_variables)
+
+        # must initalize variables for the new net
+        new_all_variables = set(tf.all_variables())
+        sess.run(tf.initialize_variables(new_all_variables - old_all_variables))
+        old_all_variables = new_all_variables
+
         cost, train, test = training_cycle(sess, new_cost, new_optimizer, new_pred, after_resize_training_epochs)
         results.append((n_layer_h1, n_layer_h2, cost, train, test))
 
